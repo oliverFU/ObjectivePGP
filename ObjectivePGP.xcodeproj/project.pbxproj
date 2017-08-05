@@ -138,6 +138,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		47C3F6E71F35D0DF00F5660E /* PGPSecretSubKeyPacket+private.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "PGPSecretSubKeyPacket+private.h"; sourceTree = "<group>"; };
 		750016A819C22E7100EAF308 /* secring-test-plaintext-encrypted-message.asc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "secring-test-plaintext-encrypted-message.asc"; sourceTree = "<group>"; };
 		7502CEFD1916DCE9001B32D7 /* PGPSignatureSubpacket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PGPSignatureSubpacket.h; sourceTree = "<group>"; };
 		7502CEFE1916DCE9001B32D7 /* PGPSignatureSubpacket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PGPSignatureSubpacket.m; sourceTree = "<group>"; };
@@ -512,6 +513,7 @@
 				75C502081F12C17400FEC874 /* PGPSecretKeyPacket+Private.h */,
 				75DA1357191A4E65004C9C76 /* PGPSecretKeyPacket.m */,
 				75DA1359191A4EA6004C9C76 /* PGPSecretSubKeyPacket.h */,
+				47C3F6E71F35D0DF00F5660E /* PGPSecretSubKeyPacket+private.h */,
 				75DA135A191A4EA6004C9C76 /* PGPSecretSubKeyPacket.m */,
 				7507B72619170FE3003A2DC7 /* PGPUserIDPacket.h */,
 				7507B72719170FE3003A2DC7 /* PGPUserIDPacket.m */,

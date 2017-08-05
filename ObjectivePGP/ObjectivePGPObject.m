@@ -22,6 +22,7 @@
 #import "PGPPublicKeyPacket.h"
 #import "PGPSecretKeyPacket.h"
 #import "PGPSignaturePacket.h"
+#import "PGPSecretSubKeyPacket.h"
 #import "PGPSubKey.h"
 #import "PGPSymmetricallyEncryptedIntegrityProtectedDataPacket.h"
 #import "PGPUser.h"
@@ -48,6 +49,50 @@ NS_ASSUME_NONNULL_BEGIN
     }
     return self;
 }
+
+#pragma mark - Generation
+- (void) generateKey: (NSString*) name{
+    PGPKey *key;
+    
+    // Create user
+    PGPUserIDPacket *userID =  [[PGPUserIDPacket alloc] initWithUserID:name];
+    PGPUser *user = [[PGPUser alloc] initWithUserIDPacket:userID];
+    
+    // primary secret key packet (for signatures)
+    PGPSecretKeyPacket *prim_sk = [PGPSecretKeyPacket generateRSASecretKeyPacket: 2048];
+    PGPPublicKeyPacket *prim_pk = prim_sk;
+    
+    // sign userID
+    PGPSignaturePacket *signUIDandPK = [PGPSignaturePacket signaturePacket:PGPSignaturePositiveCertificationUserIDandPublicKey hashAlgorithm:PGPHashSHA512];
+    PGPPartialKey *partial_temp = [[PGPPartialKey alloc] initWithPackets:@[prim_sk, userID]];
+    PGPKey *temp = [[PGPKey alloc] initWithSecretKey:partial_temp publicKey:NULL];
+    [signUIDandPK signData: [userID export:NULL] usingKey: temp passphrase:NULL userID:name error:NULL];
+    
+    // sub secret key packet (for encryption)
+    PGPSecretSubKeyPacket *sub_sk = [PGPSecretSubKeyPacket generateRSASecretSubKeyPacket: 2048];
+    PGPSubKey *encKey = [[PGPSubKey alloc] initWithPackets:@[sub_sk, userID]];
+    
+    // sign subkey with prim key
+    PGPSignaturePacket *signSubKey = [PGPSignaturePacket signaturePacket: PGPSignatureSubkeyBinding hashAlgorithm:PGPHashSHA512];
+    [signSubKey signData:[encKey export:NULL] usingKey:temp passphrase:NULL userID:name error:NULL];
+    
+    // generate public keys
+    PGPPartialKey *sk = [[PGPPartialKey alloc] initWithPackets:@[prim_sk, userID, signUIDandPK, sub_sk, signSubKey]];
+    
+    //PGPPartialKey *pk = [[PGPPartialKey alloc] initWithPackets:@[prim_pk, userID, signUIDandPK]];
+    key = [[PGPKey alloc] initWithSecretKey:sk publicKey:NULL];
+    
+    
+    NSData *output = [self exportKey:key armored: TRUE];
+    NSString *str = [[NSString alloc] initWithData:output encoding:NSUTF8StringEncoding];
+    
+    // TODO: Test key!
+    printf("My new pgp key: \n %s", (char*)[str UTF8String]);
+    return;
+    
+}
+
+
 
 #pragma mark - Search
 

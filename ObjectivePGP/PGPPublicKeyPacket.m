@@ -23,6 +23,19 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation PGPPublicKeyPacket
 
+- (instancetype)init: (NSArray*) publicMPIArray
+{
+    if (self = [super init]){
+        _createDate = NSDate.date;
+        _version = '\x04';
+        _publicMPIArray = publicMPIArray;
+        
+        _publicKeyAlgorithm = PGPPublicKeyAlgorithmRSA;
+        self.V3validityPeriod = 0;
+    }
+    return self;
+}
+
 - (instancetype)init {
     if ((self = [super init])) {
         _version = 0x04;

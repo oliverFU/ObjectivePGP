@@ -21,6 +21,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readwrite) UInt16 V3validityPeriod;
 @property (nonatomic, copy, readwrite) NSArray<PGPMPI *> *publicMPIArray;
 
+- (instancetype)init: (NSArray*) publicMPIArray;
+
 @end
 
 NS_ASSUME_NONNULL_END

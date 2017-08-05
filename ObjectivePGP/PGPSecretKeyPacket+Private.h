@@ -18,6 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readwrite) PGPSymmetricAlgorithm symmetricAlgorithm;
 @property (nonatomic, copy, readwrite) NSData *ivData;
 
+- (instancetype)init: (NSArray*) secretMPIArray publicMPIArray: (NSArray*) publicMPIArray;
 @end
 
 NS_ASSUME_NONNULL_END

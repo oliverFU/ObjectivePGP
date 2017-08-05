@@ -19,6 +19,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, readonly) NSData *ivData;
 @property (nonatomic, readonly) BOOL isEncryptedWithPassword;
 
+
++ (PGPSecretKeyPacket *) generateRSASecretKeyPacket: (int) bits;
+
 /**
  *  Decrypt packet
  *

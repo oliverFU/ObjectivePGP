@@ -14,6 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// ObjectivePGP main class.
 @interface ObjectivePGP : NSObject
 
+/// Generate key.
+- (void) generateKey: (NSString*) name;
+
 /// Imported keys.
 @property (strong, nonatomic, readonly) NSSet<PGPKey *> *keys;
 

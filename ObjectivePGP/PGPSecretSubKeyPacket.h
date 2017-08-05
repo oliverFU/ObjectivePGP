@@ -9,5 +9,6 @@
 #import "PGPSecretKeyPacket.h"
 
 @interface PGPSecretSubKeyPacket : PGPSecretKeyPacket
++ (PGPSecretSubKeyPacket *) generateRSASecretSubKeyPacket: (int) bits;
 
 @end
