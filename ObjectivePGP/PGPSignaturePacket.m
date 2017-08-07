@@ -372,8 +372,32 @@ NS_ASSUME_NONNULL_BEGIN
 
     // signed part data
     // timestamp subpacket is required
-    let creationTimeSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeSignatureCreationTime andValue:NSDate.date];
-    self.hashedSubpackets = @[creationTimeSubpacket];
+    PGPSignatureSubpacket * creationTimeSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeSignatureCreationTime andValue:NSDate.date];
+    PGPSignatureSubpacket * issuerFprSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeIssuerFpr andValue:[signingKeyPacket exportPublicPacketOldStyle]];
+    switch (self.type) {
+        case PGPSignatureSubkeyBinding:
+        {
+            // issuer, sig create, key flags, key expire
+            PGPSignatureSubpacket *keyFlagsSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeKeyFlags andValue:@[@(PGPSignatureFlagAllowEncryptStorage), @(PGPSignatureFlagAllowEncryptCommunications)]];
+            self.hashedSubpackets = @[issuerFprSubpacket,creationTimeSubpacket, keyFlagsSubpacket];
+        }break;
+        case PGPSignaturePositiveCertificationUserIDandPublicKey:
+        {
+            PGPSignatureSubpacket *keyFlagsSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeKeyFlags andValue:@[@(PGPSignatureFlagAllowSignData), @(PGPSignatureFlagAllowCertifyOtherKeys),@(PGPSignatureFlagAllowEncryptCommunications)]];
+            PGPSignatureSubpacket *preferredHashAlgorithmsSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypePreferredHashAlgorithm andValue:@[@(PGPHashSHA256), @(PGPHashSHA1), @(PGPHashSHA384), @(PGPHashSHA512), @(PGPHashSHA224)]];
+            PGPSignatureSubpacket *preferredSymetricAlgorithmsSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypePreferredSymetricAlgorithm andValue:@[@(PGPSymmetricAES256), @(PGPSymmetricAES192), @(PGPSymmetricAES128), @(PGPSymmetricCAST5), @(PGPSymmetricTripleDES)]];
+            PGPSignatureSubpacket *preferredPreferredCompressionSubpacket = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypePreferredCompressionAlgorithm andValue:@[@(PGPCompressionZLIB), @(PGPCompressionBZIP2), @(PGPCompressionZIP)]];
+            PGPSignatureSubpacket *keyFeatures = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeFeatures andValue:@[@(PGPFeatureModificationDetection)]];
+            PGPSignatureSubpacket *keyServerPreferences = [[PGPSignatureSubpacket alloc] initWithType:PGPSignatureSubpacketTypeKeyServerPreference andValue:@[@(PGPKeyServerPreferenceNoModify)]];
+            self.hashedSubpackets = @[issuerFprSubpacket, creationTimeSubpacket, keyFlagsSubpacket, preferredHashAlgorithmsSubpacket, preferredSymetricAlgorithmsSubpacket, preferredPreferredCompressionSubpacket, keyFeatures, keyServerPreferences];
+        }break;
+        default:
+            self.hashedSubpackets = @[creationTimeSubpacket];
+        break;
+    }
+     
+    
+
 
     let signedPartData = [self buildSignedPart:self.hashedSubpackets];
     // calculate trailer
@@ -441,10 +465,13 @@ NS_ASSUME_NONNULL_BEGIN
             }
             [toSignData appendData:inputData];
         } break;
+        case PGPSignatureSubkeyBinding:
+        //TODO!!!
         case PGPSignatureGenericCertificationUserIDandPublicKey: // 0x10
         case PGPSignaturePersonalCertificationUserIDandPublicKey: // 0x11
         case PGPSignatureCasualCertificationUserIDandPublicKey: // 0x12
         case PGPSignaturePositiveCertificationUserIDandPublicKey: // 0x13
+        //TODO!!!
         case PGPSignatureCertificationRevocation: // 0x28
         {
             if (!keyPacket) {

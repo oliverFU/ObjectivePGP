@@ -32,6 +32,9 @@
 #import "PGPLogging.h"
 #import "PGPMacros.h"
 
+#import "PGPPublicKeyPacket+Private.h"
+#import "PGPSignaturePacket+Private.h"
+
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -51,36 +54,49 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 #pragma mark - Generation
-- (void) generateKey: (NSString*) name{
+- (PGPKey *) generateKey: (NSString*) name{
     PGPKey *key;
     
     // Create user
-    PGPUserIDPacket *userID =  [[PGPUserIDPacket alloc] initWithUserID:name];
-    PGPUser *user = [[PGPUser alloc] initWithUserIDPacket:userID];
+    PGPUserIDPacket *userIDPacket =  [[PGPUserIDPacket alloc] initWithUserID:name];
+    //PGPUser *user = [[PGPUser alloc] initWithUserIDPacket:userID];
     
     // primary secret key packet (for signatures)
-    PGPSecretKeyPacket *prim_sk = [PGPSecretKeyPacket generateRSASecretKeyPacket: 2048];
-    PGPPublicKeyPacket *prim_pk = prim_sk;
+    PGPSecretKeyPacket *secretKeyPacket = [PGPSecretKeyPacket generateRSASecretKeyPacket: 2048];
+    
+    let publicKeyPacket = [[PGPPublicKeyPacket alloc] init];
+    publicKeyPacket.version = 0x04;
+    publicKeyPacket.publicKeyAlgorithm = PGPPublicKeyAlgorithmRSA;
+    publicKeyPacket.createDate = NSDate.date;
+    publicKeyPacket.publicMPIArray = [secretKeyPacket publicMPIArray];
     
     // sign userID
     PGPSignaturePacket *signUIDandPK = [PGPSignaturePacket signaturePacket:PGPSignaturePositiveCertificationUserIDandPublicKey hashAlgorithm:PGPHashSHA512];
-    PGPPartialKey *partial_temp = [[PGPPartialKey alloc] initWithPackets:@[prim_sk, userID]];
+    PGPPartialKey *partial_temp = [[PGPPartialKey alloc] initWithPackets:@[secretKeyPacket, userIDPacket]];
     PGPKey *temp = [[PGPKey alloc] initWithSecretKey:partial_temp publicKey:NULL];
-    [signUIDandPK signData: [userID export:NULL] usingKey: temp passphrase:NULL userID:name error:NULL];
+    [signUIDandPK signData: [userIDPacket export:NULL] usingKey: temp passphrase:NULL userID:name error:NULL];
     
-    // sub secret key packet (for encryption)
-    PGPSecretSubKeyPacket *sub_sk = [PGPSecretSubKeyPacket generateRSASecretSubKeyPacket: 2048];
-    PGPSubKey *encKey = [[PGPSubKey alloc] initWithPackets:@[sub_sk, userID]];
+    // secret subkey packet (for encryption)
+    PGPSecretSubKeyPacket *secretSubKeyPacket = [PGPSecretSubKeyPacket generateRSASecretSubKeyPacket: 2048];
+    let publicSubKeyPacket = [[PGPPublicSubKeyPacket alloc] init];
+    publicSubKeyPacket.version = 0x04;
+    publicSubKeyPacket.publicKeyAlgorithm = PGPPublicKeyAlgorithmRSA;
+    publicSubKeyPacket.createDate = publicKeyPacket.createDate;
+    publicSubKeyPacket.publicMPIArray = [secretSubKeyPacket publicMPIArray];
     
-    // sign subkey with prim key
+    NSString *ppk = publicKeyPacket.description;
+    NSString *spk = publicSubKeyPacket.description;
+    
+    
+    // sign subkey with prim key    
     PGPSignaturePacket *signSubKey = [PGPSignaturePacket signaturePacket: PGPSignatureSubkeyBinding hashAlgorithm:PGPHashSHA512];
-    [signSubKey signData:[encKey export:NULL] usingKey:temp passphrase:NULL userID:name error:NULL];
+    [signSubKey signData: [publicSubKeyPacket exportPublicPacketOldStyle] usingKey: temp passphrase:NULL userID:name error:NULL];
     
     // generate public keys
-    PGPPartialKey *sk = [[PGPPartialKey alloc] initWithPackets:@[prim_sk, userID, signUIDandPK, sub_sk, signSubKey]];
+    PGPPartialKey *sk = [[PGPPartialKey alloc] initWithPackets:@[secretKeyPacket, userIDPacket, signUIDandPK, secretSubKeyPacket, signSubKey]];
     
-    //PGPPartialKey *pk = [[PGPPartialKey alloc] initWithPackets:@[prim_pk, userID, signUIDandPK]];
-    key = [[PGPKey alloc] initWithSecretKey:sk publicKey:NULL];
+    PGPPartialKey *pk = [[PGPPartialKey alloc] initWithPackets:@[publicKeyPacket, userIDPacket, signUIDandPK,publicSubKeyPacket, signSubKey]];
+    key = [[PGPKey alloc] initWithSecretKey:sk publicKey:pk];
     
     
     NSData *output = [self exportKey:key armored: TRUE];
@@ -88,7 +104,10 @@ NS_ASSUME_NONNULL_BEGIN
     
     // TODO: Test key!
     printf("My new pgp key: \n %s", (char*)[str UTF8String]);
-    return;
+    printf("\n Lenghts of prim pk: %s, of sub pk: %s \n", (char*) [ppk UTF8String], (char *) [spk UTF8String]);
+
+    
+    return key;
     
 }
 

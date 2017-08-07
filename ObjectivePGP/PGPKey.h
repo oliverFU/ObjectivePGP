@@ -21,6 +21,8 @@ NS_ASSUME_NONNULL_BEGIN
 PGP_EMPTY_INIT_UNAVAILABLE;
 
 @property (nonatomic, readonly) PGPKeyID *keyID;
+@property (nonatomic, readonly) PGPFingerprint *fingerprint;
+
 @property (nonatomic, nullable, readonly) PGPPartialKey *secretKey;
 @property (nonatomic, nullable, readonly) PGPPartialKey *publicKey;
 

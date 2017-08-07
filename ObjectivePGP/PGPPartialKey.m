@@ -100,6 +100,12 @@ NS_ASSUME_NONNULL_BEGIN
     return keyID;
 }
 
+- (PGPFingerprint *)fingerprint {
+    let primaryKeyPacket = PGPCast(self.primaryKeyPacket, PGPPublicKeyPacket);
+    return primaryKeyPacket.fingerprint;
+}
+
+
 - (void)loadPackets:(NSArray<PGPPacket *> *)packets {
     // based on packetlist2structure
     PGPKeyID *primaryKeyID;

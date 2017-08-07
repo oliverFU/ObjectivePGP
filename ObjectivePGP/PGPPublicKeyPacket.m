@@ -49,7 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSString *)description {
-    return [NSString stringWithFormat:@"%@ %@", [super description], self.keyID];
+    return [NSString stringWithFormat:@"%@ %@ %ld %d %d", [super description], self.keyID, self.publicMPIArray.count,self.publicMPIArray[0].bigNum.bytesCount, self.publicMPIArray[1].bigNum.bytesCount];
 }
 
 - (NSUInteger)keySize {

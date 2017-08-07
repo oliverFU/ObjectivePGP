@@ -11,6 +11,7 @@
 #import "PGPSignatureSubpacketCreationTime.h"
 #import "PGPCompressedPacket.h"
 #import "PGPKeyID.h"
+#import "PGPFingerprint.h"
 #import "PGPPacket.h"
 
 #import "PGPLogging.h"
@@ -80,6 +81,14 @@ NS_ASSUME_NONNULL_BEGIN
             PGPKeyID *keyID = [[PGPKeyID alloc] initWithLongKey:packetBodyData];
             self.value = keyID; //[packetBody subdataWithRange:(NSRange){0,8}];
         } break;
+        case PGPSignatureSubpacketTypeIssuerFpr: // PGPFingerprint
+        {
+            // EXPERIMENTAL
+            // See: https://github.com/keybase/keybase-issues/issues/2668
+            
+            PGPFingerprint *fpr = [[PGPFingerprint alloc] initWithData:packetBodyData];
+            self.value = fpr;
+        }break;
         case PGPSignatureSubpacketTypeExportableCertification: // NSNumber BOOL
         {
             // 5.2.3.11.  Exportable Certification
@@ -236,6 +245,13 @@ NS_ASSUME_NONNULL_BEGIN
             let keyID = PGPCast(self.value, PGPKeyID);
             if (keyID) {
                 [data appendData:[keyID exportKeyData]];
+            }
+        } break;
+        case PGPSignatureSubpacketTypeIssuerFpr: // PGPKeyID
+        {
+            let fpr = PGPCast(self.value, PGPFingerprint);
+            if (fpr) {
+                [data appendData:[fpr hashedData]];
             }
         } break;
         case PGPSignatureSubpacketTypeExportableCertification: // NSNumber BOOL

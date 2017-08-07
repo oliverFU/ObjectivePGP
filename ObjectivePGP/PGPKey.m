@@ -48,6 +48,10 @@ NS_ASSUME_NONNULL_BEGIN
     return self.publicKey.keyID ?: self.secretKey.keyID;
 }
 
+- (PGPFingerprint *)fingerprint {
+    return self.publicKey.fingerprint ?: self.secretKey.fingerprint;
+}
+
 - (nullable PGPSecretKeyPacket *)signingSecretKey {
     if (!self.secretKey) {
         PGPLogDebug(@"Need secret key to sign");
