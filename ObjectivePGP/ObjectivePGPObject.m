@@ -38,6 +38,8 @@
 #import "PGPLogging.h"
 #import "PGPMacros+Private.h"
 
+#import "NSData+PGPUtils.h"
+
 NS_ASSUME_NONNULL_BEGIN
 
 @implementation ObjectivePGP
@@ -275,9 +277,13 @@ NS_ASSUME_NONNULL_BEGIN
     }
 
     NSData *content;
-    if (shouldSign) {
-        // sign data if requested
-        content = [self sign:dataToEncrypt detached:NO usingKeys:keys passphraseForKey:passphraseForKeyBlock error:error];
+    if (shouldSign) { // sign data
+        let signKeys = [NSMutableArray<PGPKey *> array];
+        for (PGPKey* key in keys) {
+            if (key.secretKey && key.signingSecretKey != NULL){ [signKeys addObject:key];
+            }
+        }
+        content = [self sign:dataToEncrypt detached:NO usingKeys:signKeys passphraseForKey:passphraseForKeyBlock error:error];
     } else {
         // Prepare literal packet
         let literalPacket = [PGPLiteralPacket literalPacket:PGPLiteralPacketBinary withData:dataToEncrypt];
@@ -748,9 +754,9 @@ NS_ASSUME_NONNULL_BEGIN
     NSData *binaryData = [[NSData alloc] initWithBase64EncodedString:string options:NSDataBase64DecodingIgnoreUnknownCharacters];
     UInt32 checksum = [binaryData pgp_CRC24];
     UInt8  c[3]; // 24 bit
-    c[0] = checksum >> 16;
-    c[1] = checksum >> 8;
-    c[2] = checksum;
+    c[0] = (UInt8)(checksum >> 16);
+    c[1] = (UInt8)(checksum >> 8);
+    c[2] = (UInt8)checksum;
     NSData *checksumData = [NSData dataWithBytes:&c length:sizeof(c)];
     [armoredMessage appendString:@"="];
     [armoredMessage appendString:[checksumData base64EncodedStringWithOptions:(NSDataBase64Encoding76CharacterLineLength | NSDataBase64EncodingEndLineWithLineFeed)]];
