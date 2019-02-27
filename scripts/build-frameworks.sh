@@ -41,7 +41,7 @@ function build_framework {
         SYMROOT="${SYMROOT}.${sdk}" \
         OBJROOT="${OBJROOT}.${sdk}" \
         PLATFORM_NAME="${PLATFORM_NAME}" \
-        build | xcpretty
+        build 
 }
 
 # Build frameworks

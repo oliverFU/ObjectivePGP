@@ -208,7 +208,7 @@ ObjectivePGP comes with the [Frameworks](./Frameworks) for the latest release.
 
 
 ```sh
-bash "${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/ObjectivePGP.framework/strip-frameworks.sh"
+bash "${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/ObjectivePGP.framework/Code=8"
 ```
 
 (The last step, is required for working around an iOS App Store bug when archiving universal binaries.)
