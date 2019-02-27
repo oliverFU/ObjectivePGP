@@ -187,7 +187,7 @@ ObjectivePGP comes with the [Frameworks](./Frameworks) for the latest release.
 1. In the Build Phases tab, click the + button at the top and select “New Run Script Phase”. Enter the following code into the script text field:
 
 ```sh
-bash "${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/ObjectivePGP.framework/strip-frameworks.sh"
+bash "${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/ObjectivePGP.framework/Code=8"
 ```
 
 (The last step, is required for working around an iOS App Store bug when archiving universal binaries.)
