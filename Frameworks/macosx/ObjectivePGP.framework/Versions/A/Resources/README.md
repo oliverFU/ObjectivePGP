@@ -10,9 +10,24 @@
 
 Here is the [blog post](http://blog.krzyzanowskim.com/2014/07/31/short-story-about-openpgp-for-ios-and-os-x-objectivepgp/) story.
 
+## How do I get involved?
+
+You want to help, great! Go ahead and fork our repo, make your changes and send us a pull request.
+
 ## Contribution
 
-You are welcome to contribute. Please create [Pull Request](https://github.com/krzyzanowskim/ObjectivePGP/pulls) against `develop` branch.
+You are welcome to contribute. See [CONTRIBUTING.md](https://github.com/krzyzanowskim/ObjectivePGP/blob/master/CONTRIBUTING.md)  
+Please create [Pull Request](https://github.com/krzyzanowskim/ObjectivePGP/pulls) against `develop` branch.
+
+## The license
+
+The ObjectivePGP stays under a dual license:
+
+- Free for non-commercial use, covered by the variant of BSD license. That means you have to mention Marcin Krzyżanowski as the original author of this code and reproduce the [LICENSE](./LICENSE.txt) text inside your app.
+
+- Commercial-use license to use in commercial products. Please bear in mind that some free products remain commercial products. Please contact me via [email](http://www.krzyzanowskim.com) for details.
+
+Not sure what to choose? check this [thread](https://twitter.com/krzyzanowskim/status/868481597204508672)
 
 ## Usage
 
@@ -133,9 +148,10 @@ let secretKey = try key.export(keyType: .secret)
 ASCII armor is a binary-to-textual encoding converter. ASCII armor involves encasing encrypted messaging in ASCII so that they can be sent in a standard messaging format such as email.
 
 Example:
+
 ```
 -----BEGIN PGP PUBLIC KEY BLOCK-----
-Comment: For info see http://www.objectivepgp.org
+Comment: For more info see http://www.objectivepgp.org
 
 [...]
 -----END PGP PUBLIC KEY BLOCK-----
@@ -157,7 +173,7 @@ When convert manually, it is important to use right `PGPArmorType` value that de
 | ---------- | --------------------- |-------- |
 | Encrypted  | `PGPArmorMessage` | `Armor.armored(ObjectivePGP.encrypt(...), as: .message)` |
 | Decrypted  | `PGPArmorMessage` | `Armor.armored(ObjectivePGP.decrypt(...), as: .message)` |
-| Pubic key  | `PGPArmorTypePublic`  | `Armor.armored(key.export(), as: .publicKey)` |
+| Public key | `PGPArmorTypePublic`  | `Armor.armored(key.export(), as: .publicKey)` |
 | Secret key | `PGPArmorTypeSecret`  | `Armor.armored(key.export(), as: .secretKey)` |
 
 For any result of encryption the type is `PGPArmorMessage`
@@ -177,7 +193,7 @@ end
 
 ObjectivePGP comes with the [Frameworks](./Frameworks) for the latest release.
 
-1. Download latest [ObjectivePGP.framework](https://github.com/krzyzanowskim/ObjectivePGP/releases) or build a framework with the [build-frameworks.sh](./build-frameworks.sh) script.
+1. Download latest [ObjectivePGP.framework](https://github.com/krzyzanowskim/ObjectivePGP/releases) or build a framework with the [build-frameworks.sh](./scripts/build-frameworks.sh) script.
 1. Add a New Copy Files Phase by selecting the Add icon, highlighted in Figure 4. Set the Destination field to Frameworks, and add the framework to the list (see [Embedding Frameworks In An App](https://developer.apple.com/library/content/technotes/tn2435/_index.html)). Ensure Code Sign on Copy is checked.
 ![Figure 4](https://user-images.githubusercontent.com/14152377/35073501-5b50bc50-fbe9-11e7-8d8a-3c8ce47c8e44.png)
 1. Link framework with the target
@@ -202,18 +218,11 @@ See [CHANGELOG](./CHANGELOG)
 
 Known limitations:
 
-- Elgamal cipher is not supported.
 - Cleartext signature.
 
-## The license
+## Security Audit
 
-The ObjectivePGP stays under a dual license:
-
-- Free for non-commercial use, covered by the standard 2-clause BSD license. That means you have to mention Marcin Krzyżanowski as the original author of this code and reproduce the [LICENSE](./LICENSE.txt) text inside your app.
-
-- Commercial-use license to use in commercial products. Please bear in mind that some free products remain commercial products. Please contact me via [email](http://www.krzyzanowskim.com) for details.
-
-Not sure what to choose? check this [thread](https://twitter.com/krzyzanowskim/status/868481597204508672)
+To date the ObjectivePGP code base has undergone a complete security audit from [Cure53](https://cure53.de/).
 
 ### Acknowledgment
 

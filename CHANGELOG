@@ -1,3 +1,30 @@
+Version 0.13.0
+- Fixes issue where expirationData value was missing for expired keys. Fixes #120.
+- Improves logging setup by respecting PGP_LOG_LEVEL setting.
+- Updates cryptography engine.
+
+Version 0.12.3
+- No more NSException is returned. Check for error or or return status instead.
+- Use NS_NOESCAPE for Objective-C and Swift.
+
+Version 0.12.2
+- Fixes multiple users keys certificates support. Fixes #113
+
+Version 0.12.1
+- By convention, the subkeys provide encryption services if flags doesn't specify otherwise.
+
+Version 0.12.0
+- Adds Elgamal support.
+- Improves reading armored messages.
+- API: Exposes primaryUser for the key.
+
+Version 0.11.0
+- Fixes signature verification bypass (CM-02-003)
+- Fixes dearmoring ignores unknown characters (CM-02-004)
+- Fixes armored header-footer bug (CM-02-005)
+- Fixes handling of unexpected packets (CM-02-007)
+- Fixes crash in `-[PGPKeyring importKey:fromPath:]`
+
 Version 0.10.0
 - Adds Symmetrically Encrypted Data Packet support. Fixes #91
 - Adds multikey signatures.
@@ -109,7 +136,7 @@ Version 0.5
 - ZIP compression support
 - Signature Verification: find the correct key by the issuerKeyID
 - Harden Signature verification
-- Support integrity protected status 
+- Support integrity protected status
 
 Version 0.4.2
 - Fix length header for some double-octet length

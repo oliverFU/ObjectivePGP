@@ -24,10 +24,16 @@ NS_ASSUME_NONNULL_BEGIN
 
     // detect if armored, check for string -----BEGIN PGP
     NSString *str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    if (str && [str hasPrefix:@"-----BEGIN PGP"]) {
-        return YES;
+    if (!str) {
+        return NO;
     }
-    return NO;
+    NSString *stringValue;
+    let scanner = [NSScanner scannerWithString:str];
+    scanner.charactersToBeSkipped = nil;
+    if ([scanner scanUpToString:@"-----BEGIN PGP" intoString:&stringValue] && scanner.atEnd) {
+        return NO;
+    }
+    return YES;
 }
 
 + (NSString *)armored:(NSData *)data as:(PGPArmorType)type {
@@ -109,14 +115,19 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSData *)readArmored:(NSString *)string error:(NSError * __autoreleasing _Nullable *)error {
     PGPAssertClass(string, NSString);
 
-    NSScanner *scanner = [[NSScanner alloc] initWithString:string];
+    let scanner = [[NSScanner alloc] initWithString:string];
     scanner.charactersToBeSkipped = nil;
 
     // check header line
     NSString *headerLine = nil;
     [scanner scanUpToCharactersFromSet:[NSCharacterSet newlineCharacterSet] intoString:&headerLine];
-    if (!PGPEqualObjects(headerLine, @"-----BEGIN PGP MESSAGE-----") && !PGPEqualObjects(headerLine, @"-----BEGIN PGP PUBLIC KEY BLOCK-----") && !PGPEqualObjects(headerLine, @"-----BEGIN PGP PRIVATE KEY BLOCK-----") && !PGPEqualObjects(headerLine, @"-----BEGIN PGP SECRET KEY BLOCK-----") && // PGP 2.x generates the header "BEGIN PGP SECRET KEY BLOCK" instead of "BEGIN PGP PRIVATE KEY BLOCK"
-        !PGPEqualObjects(headerLine, @"-----BEGIN PGP SIGNATURE-----") && ![headerLine hasPrefix:@"-----BEGIN PGP MESSAGE, PART"]) {
+    if (!PGPEqualObjects(headerLine, @"-----BEGIN PGP MESSAGE-----") &&
+        !PGPEqualObjects(headerLine, @"-----BEGIN PGP PUBLIC KEY BLOCK-----") &&
+        !PGPEqualObjects(headerLine, @"-----BEGIN PGP PRIVATE KEY BLOCK-----") &&
+        !PGPEqualObjects(headerLine, @"-----BEGIN PGP SECRET KEY BLOCK-----") && // PGP 2.x generates the header "BEGIN PGP SECRET KEY BLOCK" instead of "BEGIN PGP PRIVATE KEY BLOCK"
+        !PGPEqualObjects(headerLine, @"-----BEGIN PGP SIGNATURE-----") &&
+        ![headerLine hasPrefix:@"-----BEGIN PGP MESSAGE, PART"])
+    {
         if (error) {
             *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidMessage userInfo:@{ NSLocalizedDescriptionKey: @"Invalid header" }];
         }
@@ -144,18 +155,19 @@ NS_ASSUME_NONNULL_BEGIN
     [scanner scanCharactersFromSet:[NSCharacterSet newlineCharacterSet] intoString:nil];
 
     // read base64 data
+    // The encoded stream must be represented in lines of no more than 76 characters each.
     BOOL base64Section = YES;
-    NSMutableString *base64String = [NSMutableString string];
+    let base64String = [NSMutableString string];
     while (base64Section && [scanner scanCharactersFromSet:[[NSCharacterSet newlineCharacterSet] invertedSet] intoString:&line]) {
         // consume newline
         [scanner scanString:@"\r" intoString:nil];
         [scanner scanString:@"\n" intoString:nil];
 
-        if ([line hasPrefix:@"="]) {
+        if ([line hasPrefix:@"="] || [line hasPrefix:@"-----"]) {
             scanner.scanLocation = scanner.scanLocation - (line.length + 2);
             base64Section = NO;
         } else {
-            [base64String appendFormat:@"%@\n", line];
+            [base64String appendString:line];
         }
     }
 
@@ -180,7 +192,7 @@ NS_ASSUME_NONNULL_BEGIN
     [scanner scanString:@"\r" intoString:nil];
     [scanner scanString:@"\n" intoString:nil];
 
-    if ([line hasSuffix:[headerLine substringFromIndex:12]]) {
+    if ([line isEqualToString:[NSString stringWithFormat:@"-----END %@",[headerLine substringFromIndex:11]]]) {
         footerMatchHeader = YES;
     }
 
@@ -192,12 +204,12 @@ NS_ASSUME_NONNULL_BEGIN
     }
 
     // binary data from base64 part
-    NSData *binaryData = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    let binaryData = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
 
     // The checksum with its leading equal sign MAY appear on the first line after the base64 encoded data.
     // validate checksum
     if (checksumString) {
-        let readChecksumData = [[NSData alloc] initWithBase64EncodedString:checksumString options:NSDataBase64DecodingIgnoreUnknownCharacters];
+        let readChecksumData = [[NSData alloc] initWithBase64EncodedString:checksumString options:0];
 
         UInt32 calculatedCRC24 = [binaryData pgp_CRC24];
         calculatedCRC24 = CFSwapInt32HostToBig(calculatedCRC24);
@@ -225,7 +237,7 @@ NS_ASSUME_NONNULL_BEGIN
         armoredString = [armoredString stringByReplacingOccurrencesOfString:@"\n" withString:@"\r\n"];
 
         let extractedBlocks = [[NSMutableArray<NSString *> alloc] init];
-        let regex = [[NSRegularExpression alloc] initWithPattern:@"(-----)(BEGIN|END)[ ](PGP)[A-Z ]*(-----)" options:NSRegularExpressionDotMatchesLineSeparators error:nil];
+        let regex = [[NSRegularExpression alloc] initWithPattern:@"-----(BEGIN|END) (PGP)[A-Z ]*-----" options:NSRegularExpressionDotMatchesLineSeparators error:nil];
         __block NSInteger offset = 0;
         [regex enumerateMatchesInString:armoredString options:NSMatchingReportCompletion range:NSMakeRange(0, armoredString.length) usingBlock:^(NSTextCheckingResult *_Nullable result, __unused NSMatchingFlags flags, __unused BOOL *stop) {
             let substring = [armoredString substringWithRange:result.range];

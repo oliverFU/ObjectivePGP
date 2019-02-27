@@ -141,10 +141,10 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (nullable NSDate *)expirationDate {
-    PGPSignatureSubpacket *creationDateSubpacket = [[self subpacketsOfType:PGPSignatureSubpacketTypeSignatureCreationTime] firstObject];
-    PGPSignatureSubpacket *validityPeriodSubpacket = [[self subpacketsOfType:PGPSignatureSubpacketTypeSignatureExpirationTime] firstObject];
+    let creationDateSubpacket = PGPCast([self subpacketsOfType:PGPSignatureSubpacketTypeSignatureCreationTime].firstObject, PGPSignatureSubpacket);
+    var validityPeriodSubpacket = PGPCast([self subpacketsOfType:PGPSignatureSubpacketTypeSignatureExpirationTime].firstObject, PGPSignatureSubpacket);
     if (!validityPeriodSubpacket) {
-        validityPeriodSubpacket = [[self subpacketsOfType:PGPSignatureSubpacketTypeKeyExpirationTime] firstObject];
+        validityPeriodSubpacket = PGPCast([self subpacketsOfType:PGPSignatureSubpacketTypeKeyExpirationTime].firstObject, PGPSignatureSubpacket);
     }
 
     let creationDate = PGPCast(creationDateSubpacket.value, NSDate);
@@ -176,11 +176,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)isPrimaryUserID {
     PGPSignatureSubpacket *primaryUserIDSubpacket = [[self subpacketsOfType:PGPSignatureSubpacketTypePrimaryUserID] firstObject];
-    return [(NSNumber *)primaryUserIDSubpacket.value boolValue];
+    return PGPCast(primaryUserIDSubpacket.value, NSNumber).boolValue;
 }
 
 - (BOOL)canBeUsedToSign {
-    BOOL result = self.publicKeyAlgorithm == PGPPublicKeyAlgorithmDSA || self.publicKeyAlgorithm == PGPPublicKeyAlgorithmRSA || self.publicKeyAlgorithm == PGPPublicKeyAlgorithmRSASignOnly;
+    BOOL result = self.publicKeyAlgorithm == PGPPublicKeyAlgorithmDSA ||
+                  self.publicKeyAlgorithm == PGPPublicKeyAlgorithmRSA ||
+                  self.publicKeyAlgorithm == PGPPublicKeyAlgorithmRSASignOnly;
+                  // PGPPublicKeyAlgorithmElgamalEncryptorSign is deprecated that is not expected to be used here
 
     if (result) {
         PGPSignatureSubpacket *subpacket = [[self subpacketsOfType:PGPSignatureSubpacketTypeKeyFlags] firstObject];
@@ -194,7 +197,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)canBeUsedToEncrypt {
     BOOL result = NO;
-    PGPSignatureSubpacket *subpacket = [[self subpacketsOfType:PGPSignatureSubpacketTypeKeyFlags] firstObject];
+    let subpacket = PGPCast([[self subpacketsOfType:PGPSignatureSubpacketTypeKeyFlags] firstObject], PGPSignatureSubpacket);
     NSArray<NSNumber *> * _Nullable flags = PGPCast(subpacket.value, NSArray);
     if ([flags containsObject:@(PGPSignatureFlagAllowEncryptStorage)] || [flags containsObject:@(PGPSignatureFlagAllowEncryptCommunications)]) {
         result = YES;
@@ -311,6 +314,8 @@ NS_ASSUME_NONNULL_BEGIN
 // Opposite to sign, with readed data (not produced)
 - (BOOL)verifyData:(NSData *)inputData publicKey:(PGPKey *)publicKey signingKeyPacket:(PGPPublicKeyPacket *)signingKeyPacket userID:(nullable NSString *)userID error:(NSError * __autoreleasing _Nullable *)error {
     // no signing packet was found, this we have no valid signature
+    PGPAssertClass(inputData, NSData);
+    PGPAssertClass(publicKey, PGPKey);
     PGPAssertClass(signingKeyPacket, PGPPublicKeyPacket);
 
     if (self.type == PGPSignatureBinaryDocument && inputData.length == 0) {
@@ -377,13 +382,28 @@ NS_ASSUME_NONNULL_BEGIN
                 return NO;
             }
         } break;
-        case PGPPublicKeyAlgorithmDSA:
-        case PGPPublicKeyAlgorithmECDSA: {
+        case PGPPublicKeyAlgorithmDSA:{
             return [PGPDSA verify:toHashData signature:self withPublicKeyPacket:signingKeyPacket];
         } break;
-        default:
-            [NSException raise:@"PGPNotSupported" format:@"Algorith not supported"];
-            break;
+        case PGPPublicKeyAlgorithmECDSA:
+        case PGPPublicKeyAlgorithmElgamal:
+        case PGPPublicKeyAlgorithmElliptic:
+        case PGPPublicKeyAlgorithmElgamalEncryptorSign:
+        case PGPPublicKeyAlgorithmDiffieHellman:
+        case PGPPublicKeyAlgorithmPrivate1:
+        case PGPPublicKeyAlgorithmPrivate2:
+        case PGPPublicKeyAlgorithmPrivate3:
+        case PGPPublicKeyAlgorithmPrivate4:
+        case PGPPublicKeyAlgorithmPrivate5:
+        case PGPPublicKeyAlgorithmPrivate6:
+        case PGPPublicKeyAlgorithmPrivate7:
+        case PGPPublicKeyAlgorithmPrivate8:
+        case PGPPublicKeyAlgorithmPrivate9:
+        case PGPPublicKeyAlgorithmPrivate10:
+        case PGPPublicKeyAlgorithmPrivate11:
+            PGPLogWarning(@"Algorithm %@ is not supported.", @(signingKeyPacket.publicKeyAlgorithm));
+            return NO;
+        break;
     }
 
     return YES;
@@ -486,12 +506,30 @@ NS_ASSUME_NONNULL_BEGIN
             self.signatureMPIs = @[[[PGPMPI alloc] initWithData:encryptedEmData identifier:PGPMPI_M]];
         } break;
         case PGPPublicKeyAlgorithmDSA:
-        case PGPPublicKeyAlgorithmECDSA: {
             self.signatureMPIs = [PGPDSA sign:toHashData key:key];
-        } break;
-        default:
-            [NSException raise:@"PGPNotSupported" format:@"Algorith not supported"];
-            break;
+        break;
+        case PGPPublicKeyAlgorithmECDSA:
+        case PGPPublicKeyAlgorithmElgamal:
+        case PGPPublicKeyAlgorithmElliptic:
+        case PGPPublicKeyAlgorithmElgamalEncryptorSign:
+        case PGPPublicKeyAlgorithmDiffieHellman:
+        case PGPPublicKeyAlgorithmPrivate1:
+        case PGPPublicKeyAlgorithmPrivate2:
+        case PGPPublicKeyAlgorithmPrivate3:
+        case PGPPublicKeyAlgorithmPrivate4:
+        case PGPPublicKeyAlgorithmPrivate5:
+        case PGPPublicKeyAlgorithmPrivate6:
+        case PGPPublicKeyAlgorithmPrivate7:
+        case PGPPublicKeyAlgorithmPrivate8:
+        case PGPPublicKeyAlgorithmPrivate9:
+        case PGPPublicKeyAlgorithmPrivate10:
+        case PGPPublicKeyAlgorithmPrivate11:
+            PGPLogWarning(@"Algorithm %@ is not supported.", @(self.publicKeyAlgorithm));
+            if (error) {
+                *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorGeneral userInfo:@{ NSLocalizedDescriptionKey: @"Algorithm not supported" }];
+            }
+            return NO;
+        break;
     }
 
     if (self.unhashedSubpackets.count == 0) {
@@ -726,35 +764,49 @@ NS_ASSUME_NONNULL_BEGIN
         case PGPPublicKeyAlgorithmRSASignOnly: {
             // multiprecision integer (MPI) of RSA signature value m**d mod n.
             // MPI of RSA public modulus n;
-            PGPMPI *mpiN = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_N atPosition:position];
+            let mpiN = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_N atPosition:position];
             position = position + mpiN.packetLength;
 
             self.signatureMPIs = @[mpiN];
         } break;
-        case PGPPublicKeyAlgorithmDSA:
-        case PGPPublicKeyAlgorithmECDSA: {
+        case PGPPublicKeyAlgorithmDSA: {
             // MPI of DSA value r.
-            PGPMPI *mpiR = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_R atPosition:position];
+            let mpiR = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_R atPosition:position];
             position = position + mpiR.packetLength;
 
             // MPI of DSA value s.
-            PGPMPI *mpiS = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_S atPosition:position];
+            let mpiS = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_S atPosition:position];
             position = position + mpiS.packetLength;
 
             self.signatureMPIs = @[mpiR, mpiS];
         } break;
-        case PGPPublicKeyAlgorithmElgamal: {
+        case PGPPublicKeyAlgorithmElgamalEncryptorSign: {
             // MPI of Elgamal (Diffie-Hellman) value g**k mod p.
-            PGPMPI *mpiG = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_G atPosition:position];
-            position = position + mpiG.packetLength;
+            let mpiR = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_R atPosition:position];
+            position = position + mpiR.packetLength;
 
             // MPI of Elgamal (Diffie-Hellman) value m * y**k mod p.
-            PGPMPI *mpiY = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_Y atPosition:position];
-            position = position + mpiY.packetLength;
+            let mpiS = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_S atPosition:position];
+            position = position + mpiS.packetLength;
 
-            self.signatureMPIs = @[mpiG, mpiY];
+            self.signatureMPIs = @[mpiR, mpiS];
         } break;
-        default:
+        case PGPPublicKeyAlgorithmECDSA:
+        case PGPPublicKeyAlgorithmElgamal: // encrypt only. ignore.
+        case PGPPublicKeyAlgorithmElliptic:
+        case PGPPublicKeyAlgorithmDiffieHellman:
+        case PGPPublicKeyAlgorithmPrivate1:
+        case PGPPublicKeyAlgorithmPrivate2:
+        case PGPPublicKeyAlgorithmPrivate3:
+        case PGPPublicKeyAlgorithmPrivate4:
+        case PGPPublicKeyAlgorithmPrivate5:
+        case PGPPublicKeyAlgorithmPrivate6:
+        case PGPPublicKeyAlgorithmPrivate7:
+        case PGPPublicKeyAlgorithmPrivate8:
+        case PGPPublicKeyAlgorithmPrivate9:
+        case PGPPublicKeyAlgorithmPrivate10:
+        case PGPPublicKeyAlgorithmPrivate11:
+            // noop
             break;
     }
 
@@ -881,8 +933,7 @@ NS_ASSUME_NONNULL_BEGIN
 
             self.signatureMPIs = @[mpiN];
         } break;
-        case PGPPublicKeyAlgorithmDSA:
-        case PGPPublicKeyAlgorithmECDSA: {
+        case PGPPublicKeyAlgorithmDSA: {
             // MPI of DSA value r.
             PGPMPI *mpiR = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_R atPosition:position];
             position = position + mpiR.packetLength;
@@ -893,18 +944,33 @@ NS_ASSUME_NONNULL_BEGIN
 
             self.signatureMPIs = @[mpiR, mpiS];
         } break;
-        case PGPPublicKeyAlgorithmElgamal: {
+        case PGPPublicKeyAlgorithmElgamalEncryptorSign: {
             // MPI of Elgamal (Diffie-Hellman) value g**k mod p.
-            PGPMPI *mpiG = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_G atPosition:position];
-            position = position + mpiG.packetLength;
+            PGPMPI *mpiR = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_R atPosition:position];
+            position = position + mpiR.packetLength;
 
             // MPI of Elgamal (Diffie-Hellman) value m * y**k mod p.
-            PGPMPI *mpiY = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_Y atPosition:position];
-            position = position + mpiY.packetLength;
+            PGPMPI *mpiS = [[PGPMPI alloc] initWithMPIData:packetBody identifier:PGPMPI_S atPosition:position];
+            position = position + mpiS.packetLength;
 
-            self.signatureMPIs = @[mpiG, mpiY];
+            self.signatureMPIs = @[mpiR, mpiS];
         } break;
-        default:
+        case PGPPublicKeyAlgorithmECDSA:
+        case PGPPublicKeyAlgorithmElgamal: // encrypt only. ignore.
+        case PGPPublicKeyAlgorithmElliptic:
+        case PGPPublicKeyAlgorithmDiffieHellman:
+        case PGPPublicKeyAlgorithmPrivate1:
+        case PGPPublicKeyAlgorithmPrivate2:
+        case PGPPublicKeyAlgorithmPrivate3:
+        case PGPPublicKeyAlgorithmPrivate4:
+        case PGPPublicKeyAlgorithmPrivate5:
+        case PGPPublicKeyAlgorithmPrivate6:
+        case PGPPublicKeyAlgorithmPrivate7:
+        case PGPPublicKeyAlgorithmPrivate8:
+        case PGPPublicKeyAlgorithmPrivate9:
+        case PGPPublicKeyAlgorithmPrivate10:
+        case PGPPublicKeyAlgorithmPrivate11:
+            // noop
             break;
     }
 

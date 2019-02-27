@@ -239,23 +239,33 @@ NS_ASSUME_NONNULL_BEGIN
 
             self.secretMPIs = @[mpiD, mpiP, mpiQ, mpiU];
         } break;
-        case PGPPublicKeyAlgorithmDSA: {
+        case PGPPublicKeyAlgorithmDSA:
+        case PGPPublicKeyAlgorithmElgamal: {
             // MPI of DSA secret exponent x.
-            let mpiX = [[PGPMPI alloc] initWithMPIData:data identifier:PGPMPI_X atPosition:position];
-            position = position + mpiX.packetLength;
-
-            self.secretMPIs = @[mpiX];
-        } break;
-        case PGPPublicKeyAlgorithmElgamal:
-        case PGPPublicKeyAlgorithmElgamalEncryptorSign: {
             // MPI of Elgamal secret exponent x.
             let mpiX = [[PGPMPI alloc] initWithMPIData:data identifier:PGPMPI_X atPosition:position];
             position = position + mpiX.packetLength;
 
             self.secretMPIs = @[mpiX];
         } break;
-        default:
-            break;
+        case PGPPublicKeyAlgorithmElgamalEncryptorSign:
+        case PGPPublicKeyAlgorithmElliptic:
+        case PGPPublicKeyAlgorithmECDSA:
+        case PGPPublicKeyAlgorithmDiffieHellman:
+        case PGPPublicKeyAlgorithmPrivate1:
+        case PGPPublicKeyAlgorithmPrivate2:
+        case PGPPublicKeyAlgorithmPrivate3:
+        case PGPPublicKeyAlgorithmPrivate4:
+        case PGPPublicKeyAlgorithmPrivate5:
+        case PGPPublicKeyAlgorithmPrivate6:
+        case PGPPublicKeyAlgorithmPrivate7:
+        case PGPPublicKeyAlgorithmPrivate8:
+        case PGPPublicKeyAlgorithmPrivate9:
+        case PGPPublicKeyAlgorithmPrivate10:
+        case PGPPublicKeyAlgorithmPrivate11:
+            // noop
+            position = position + data.length;
+        break;
     }
 
     if (length) {
@@ -420,7 +430,7 @@ NS_ASSUME_NONNULL_BEGIN
     duplicate.s2k = self.s2k;
     duplicate.symmetricAlgorithm = self.symmetricAlgorithm;
     duplicate.ivData = self.ivData;
-    duplicate.secretMPIs = self.secretMPIs;
+    duplicate.secretMPIs = [[NSArray alloc] initWithArray:self.secretMPIs copyItems:YES];
     duplicate.encryptedMPIPartData = self.encryptedMPIPartData;;
     duplicate.wasDecrypted = self.wasDecrypted;
     return duplicate;

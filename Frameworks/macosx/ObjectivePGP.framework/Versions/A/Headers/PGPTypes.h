@@ -12,7 +12,14 @@
 #define NS_DESIGNATED_INITIALIZER
 #endif
 
-#define PGP_NOESCAPE __attribute__((noescape))
+#ifdef NS_NOESCAPE
+#undef NS_NOESCAPE
+#endif
+
+#ifndef NS_NOESCAPE
+#define NS_NOESCAPE __attribute__((noescape))
+#endif
+
 
 static const UInt32 PGPUnknownLength = UINT32_MAX;
 static NSString *const PGPErrorDomain = @"com.objectivepgp";
@@ -53,7 +60,7 @@ typedef NS_ENUM(UInt8, PGPPacketTag) {
     PGPSecretSubkeyPacketTag = 7,
     PGPCompressedDataPacketTag = 8,
     PGPSymmetricallyEncryptedDataPacketTag = 9,
-    PGPMarkerPacketTag = 10, // Ignored (Obsolete Literal Packet)
+    PGPMarkerPacketTag = 10, // (Obsolete Literal Packet)
     PGPLiteralDataPacketTag = 11,
     PGPTrustPacketTag = 12,
     PGPUserIDPacketTag = 13,
@@ -61,6 +68,10 @@ typedef NS_ENUM(UInt8, PGPPacketTag) {
     PGPUserAttributePacketTag = 17,
     PGPSymmetricallyEncryptedIntegrityProtectedDataPacketTag = 18,
     PGPModificationDetectionCodePacketTag = 19,
+    PGPExperimentalPacketTag1 = 60,
+    PGPExperimentalPacketTag2 = 61,
+    PGPExperimentalPacketTag3 = 62,
+    PGPExperimentalPacketTag4 = 63
 };
 
 typedef NS_ENUM(UInt8, PGPUserAttributeSubpacketType) {

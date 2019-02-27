@@ -59,15 +59,29 @@ NS_ASSUME_NONNULL_BEGIN
             publicKeyPacket.publicMPIs = @[keyMaterial.n, keyMaterial.e];
             secretKeyPacket.secretMPIs = @[keyMaterial.d, keyMaterial.p, keyMaterial.q, keyMaterial.u];
         } break;
-        case PGPPublicKeyAlgorithmDSA:
-        case PGPPublicKeyAlgorithmECDSA: {
+        case PGPPublicKeyAlgorithmDSA:{
             keyMaterial = [PGPDSA generateNewKeyMPIArray:bits];
             publicKeyPacket.publicMPIs = @[keyMaterial.p, keyMaterial.q, keyMaterial.g, keyMaterial.y];
             secretKeyPacket.secretMPIs = @[keyMaterial.x];
         } break;
-        default:
+        case PGPPublicKeyAlgorithmECDSA:
+        case PGPPublicKeyAlgorithmElgamal:
+        case PGPPublicKeyAlgorithmElliptic:
+        case PGPPublicKeyAlgorithmElgamalEncryptorSign:
+        case PGPPublicKeyAlgorithmDiffieHellman:
+        case PGPPublicKeyAlgorithmPrivate1:
+        case PGPPublicKeyAlgorithmPrivate2:
+        case PGPPublicKeyAlgorithmPrivate3:
+        case PGPPublicKeyAlgorithmPrivate4:
+        case PGPPublicKeyAlgorithmPrivate5:
+        case PGPPublicKeyAlgorithmPrivate6:
+        case PGPPublicKeyAlgorithmPrivate7:
+        case PGPPublicKeyAlgorithmPrivate8:
+        case PGPPublicKeyAlgorithmPrivate9:
+        case PGPPublicKeyAlgorithmPrivate10:
+        case PGPPublicKeyAlgorithmPrivate11:
             NSAssert(NO, @"Not supported");
-            return nil;
+            break;
     }
 
     secretKeyPacket.publicMPIs = publicKeyPacket.publicMPIs;

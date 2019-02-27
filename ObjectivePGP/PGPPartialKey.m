@@ -106,9 +106,10 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)loadPackets:(NSArray<PGPPacket *> *)packets {
-    // based on packetlist2structure
     PGPKeyID *primaryKeyID;
     PGPPartialSubKey *subKey;
+
+    // Current "context" user. The last parsed user packet.
     PGPUser *user;
 
     for (PGPPacket *packet in packets) {
@@ -128,10 +129,8 @@ NS_ASSUME_NONNULL_BEGIN
                 user.userAttribute = PGPCast(packet, PGPUserAttributePacket);
                 break;
             case PGPUserIDPacketTag: {
-                let parsedUser = [[PGPUser alloc] initWithUserIDPacket:(PGPUserIDPacket *)packet];
-                if (!user) {
-                    user = parsedUser;
-                }
+                let parsedUser = [[PGPUser alloc] initWithUserIDPacket:PGPCast(packet, PGPUserIDPacket)];
+                user = parsedUser;
                 self.users = [self.users arrayByAddingObject:parsedUser];
             } break;
             case PGPPublicSubkeyPacketTag:
@@ -284,6 +283,13 @@ NS_ASSUME_NONNULL_BEGIN
         }
     }
 
+    // v3 keys MUST NOT have subkeys
+    if (PGPCast(self.primaryKeyPacket, PGPPublicKeyPacket).version >= 0x04) {
+        // 5.5.1.2. If not specified otherwise,
+        // By convention, the subkeys provide encryption services.
+        return PGPCast(self.subKeys.firstObject.primaryKeyPacket, PGPPublicSubKeyPacket);;
+    }
+
     if (error) {
         *error = [NSError errorWithDomain:PGPErrorDomain code:0 userInfo:@{ NSLocalizedDescriptionKey: @"Encryption key not found" }];
     }
@@ -420,6 +426,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - Verification
 
+- (nullable PGPUser *)primaryUser {
+    return [[self primaryUserAndSelfCertificate:nil] copy];
+}
+
 // Returns primary user with self certificate
 - (nullable PGPUser *)primaryUserAndSelfCertificate:(PGPSignaturePacket *__autoreleasing _Nullable *)selfCertificateOut {
     PGPUser *foundUser = nil;
@@ -429,7 +439,7 @@ NS_ASSUME_NONNULL_BEGIN
             continue;
         }
 
-        let selfCertificate = user.validSelfCertificate;
+        let selfCertificate = user.latestSelfCertificate;
         if (!selfCertificate) {
             continue;
         }

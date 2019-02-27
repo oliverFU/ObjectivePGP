@@ -86,6 +86,8 @@ NS_ASSUME_NONNULL_BEGIN
     var packets = [ObjectivePGP readPacketsFromData:binaryMessage];
     packets = [self decryptPackets:packets usingKeys:keys passphrase:passphraseForKeyBlock error:error];
 
+    // If the packet list of a message contains multiple literal packets, the first literal packet should
+    // be considered as the correct one and any additional literal packets should be ignored.
     let literalPacket = PGPCast([[packets pgp_objectsPassingTest:^BOOL(PGPPacket *packet, BOOL *stop) {
         BOOL found = packet.tag == PGPLiteralDataPacketTag;
         *stop = found;
@@ -96,7 +98,7 @@ NS_ASSUME_NONNULL_BEGIN
     let plaintextData = literalPacket.literalRawData;
     if (!plaintextData) {
         if (error) {
-            *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidMessage userInfo:@{ NSLocalizedDescriptionKey: @"Unable to decrypt. Nothing to decrypt." }];
+            *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidMessage userInfo:@{ NSLocalizedDescriptionKey: @"Unable to decrypt. Nothing to decrypt or missing private key." }];
         }
         return nil;
     }
@@ -326,6 +328,10 @@ NS_ASSUME_NONNULL_BEGIN
     // Calculate signatures signatures
     let signatures = [NSMutableArray<PGPSignaturePacket *> array];
     for (PGPKey *key in keys) {
+        // Sign with the signing keys only
+        if (!key.signingSecretKey) {
+            continue;
+        }
         // Signed Message :- Signature Packet, Literal Message
         let signaturePacket = [PGPSignaturePacket signaturePacket:PGPSignatureBinaryDocument hashAlgorithm:preferedHashAlgorithm];
         let passphrase = passphraseBlock ? passphraseBlock(key) : nil;
@@ -373,7 +379,7 @@ NS_ASSUME_NONNULL_BEGIN
         let onePassPacket = [[PGPOnePassSignaturePacket alloc] init];
         onePassPacket.signatureType = signaturePacket.type;
         onePassPacket.publicKeyAlgorithm = signaturePacket.publicKeyAlgorithm;
-        onePassPacket.hashAlgorith = signaturePacket.hashAlgoritm;
+        onePassPacket.hashAlgorithm = signaturePacket.hashAlgoritm;
         onePassPacket.keyID = PGPNN(signaturePacket.issuerKeyID);
         onePassPacket.isNested = NO;
         NSError * _Nullable onePassExportError = nil;
@@ -483,6 +489,12 @@ NS_ASSUME_NONNULL_BEGIN
             let issuerKeyID = signaturePacket.issuerKeyID;
             if (issuerKeyID) {
                 let issuerKey = [PGPKeyring findKeyWithKeyID:issuerKeyID in:keys];
+                if (!issuerKey) {
+                    if (error) {
+                        *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidSignature userInfo:@{ NSLocalizedDescriptionKey: @"Unable to check signature. No public key." }];
+                    }
+                    return NO;
+                }
                 return [signaturePacket verifyData:binarySignedData publicKey:issuerKey error:error];
             }
         }
@@ -544,7 +556,10 @@ NS_ASSUME_NONNULL_BEGIN
                 onePassSignatureCount++;
                 break;
             case PGPLiteralDataPacketTag:
-                literalPacket = PGPCast(packet, PGPLiteralPacket);
+                // Only first literal packet is considered as correct
+                if (!literalPacket) {
+                    literalPacket = PGPCast(packet, PGPLiteralPacket);
+                }
                 break;
             case PGPSignaturePacketTag: {
                 let signaturePacket = PGPCast(packet, PGPSignaturePacket);
@@ -641,7 +656,7 @@ NS_ASSUME_NONNULL_BEGIN
         if (error) {
             *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidMessage userInfo:@{NSLocalizedDescriptionKey: @"Can't read keys. Invalid input."}];
         }
-        return keys;
+        return nil;
     };
 
     let binRingData = [PGPArmor convertArmoredMessage2BinaryBlocksWhenNecessary:fileData error:error];
@@ -650,7 +665,7 @@ NS_ASSUME_NONNULL_BEGIN
         if (error) {
             *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidMessage userInfo:@{NSLocalizedDescriptionKey: @"Can't read keys. Invalid input."}];
         }
-        return keys;
+        return nil;
     }
 
     for (NSData *data in binRingData) {

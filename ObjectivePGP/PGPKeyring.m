@@ -49,7 +49,7 @@
 - (BOOL)importKey:(NSString *)keyIdentifier fromPath:(NSString *)path error:(NSError * __autoreleasing _Nullable *)error {
     let fullPath = [path stringByExpandingTildeInPath];
 
-    let loadedKeys = [self.class readKeysFromPath:fullPath error:error];
+    let loadedKeys = [ObjectivePGP readKeysFromPath:fullPath error:error];
     if (loadedKeys.count == 0 || (error && *error)) {
         return NO;
     }
@@ -250,9 +250,9 @@
         return keys;
     }
 
-    NSMutableArray *updatedContainer = [NSMutableArray<PGPKey *> arrayWithArray:keys];
+    let updatedContainer = [NSMutableArray<PGPKey *> arrayWithArray:keys];
 
-    PGPKey *foundCompoundKey = nil;
+    PGPKey * _Nullable foundCompoundKey = nil;
     for (PGPKey *searchKey in keys) {
         if (PGPEqualObjects(searchKey.publicKey.keyID,key.keyID) || PGPEqualObjects(searchKey.secretKey.keyID,key.keyID)) {
             foundCompoundKey = searchKey;
