@@ -676,6 +676,10 @@ NS_ASSUME_NONNULL_BEGIN
 
     for (NSData *data in binRingData) {
         let readPartialKeys = [self readPartialKeysFromData:data];
+        if (error) {
+            *error = [NSError errorWithDomain:PGPErrorDomain code:PGPErrorInvalidMessage userInfo:@{NSLocalizedDescriptionKey: @"Can't read keys. No known packets found."}];
+        }
+        return nil;
         for (PGPPartialKey *key in readPartialKeys) {
             keys = [PGPKeyring addOrUpdatePartialKey:key inContainer:keys];
         }
@@ -763,7 +767,7 @@ NS_ASSUME_NONNULL_BEGIN
             position += consumedBytes;
         }
     }
-
+    printf("packets: %lu", (unsigned long)accumulatedPackets.count);
     if (accumulatedPackets.count > 1) {
         let key = [[PGPPartialKey alloc] initWithPackets:accumulatedPackets];
         [partialKeys addObject:key];

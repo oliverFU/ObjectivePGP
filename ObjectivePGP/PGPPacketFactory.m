@@ -124,7 +124,12 @@ NS_ASSUME_NONNULL_BEGIN
         if (!packet) {
             PGPLogError(@"Invalid message.");
         }
-        PGPAssertClass(packet, PGPPacket);
+        if (packet == nil) {
+            printf("NO PACKETS!");
+            // TODO: Dirty fix to avoid crash when trying to import a ecdsa key
+           PGPLogError(@"No Packets!");
+        }
+        //PGPAssertClass(packet, PGPPacket);
 
         if (indeterminateLength) {
             packet.indeterminateLength = YES;
